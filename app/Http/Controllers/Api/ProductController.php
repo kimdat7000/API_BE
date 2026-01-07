@@ -102,8 +102,8 @@ class ProductController extends Controller
         return response()->json($product->load(['images', 'specs']), 201);
     }
 
-    /* ===================== CREATE BULK ===================== */
-    public function storemany(Request $request)
+    /* ===================== CREATE MANY ===================== */
+    public function storeMany(Request $request)
     {
         $request->validate([
             'products' => 'required|array|min:1',
