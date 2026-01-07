@@ -41,7 +41,7 @@ Route::get(
     [ReviewController::class, 'index']
 );
 
-// Gửi review
+// SEND REVIEW
 Route::post('/reviews', [ReviewController::class, 'store']);
 
 // BRANDS
@@ -52,7 +52,7 @@ Route::get('/brands/{id}', [BrandController::class, 'show']);
 Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/categories/{id}', [CategoryController::class, 'show']);
 
-// SETTINGS (frontend chỉ đọc)
+// SETTINGS (READ ONLY)
 Route::get('/settings', [SettingController::class, 'index']);
 
 /*
@@ -80,7 +80,7 @@ Route::middleware(['auth:sanctum', 'admin.api'])
 
         /*
         |--------------------------------------------------------------------------
-        | USERS (CRUD)
+        | USERS
         |--------------------------------------------------------------------------
         */
         Route::get('/users', [UserController::class, 'index']);
@@ -90,17 +90,21 @@ Route::middleware(['auth:sanctum', 'admin.api'])
 
         /*
         |--------------------------------------------------------------------------
-        | PRODUCTS (CRUD)
+        | PRODUCTS
         |--------------------------------------------------------------------------
         */
         Route::get('/products', [ProductController::class, 'adminIndex']);
         Route::post('/products', [ProductController::class, 'store']);
+
+        // 👉 BULK INSERT PRODUCTS
+        Route::post('/products/many', [ProductController::class, 'storeMany']);
+
         Route::put('/products/{id}', [ProductController::class, 'update']);
         Route::delete('/products/{id}', [ProductController::class, 'destroy']);
 
         /*
         |--------------------------------------------------------------------------
-        | PRODUCT IMAGES (CRUD)
+        | PRODUCT IMAGES
         |--------------------------------------------------------------------------
         */
         Route::post(
@@ -115,7 +119,7 @@ Route::middleware(['auth:sanctum', 'admin.api'])
 
         /*
         |--------------------------------------------------------------------------
-        | PRODUCT SPECS (CRUD)
+        | PRODUCT SPECS
         |--------------------------------------------------------------------------
         */
         Route::post(
@@ -135,7 +139,7 @@ Route::middleware(['auth:sanctum', 'admin.api'])
 
         /*
         |--------------------------------------------------------------------------
-        | REVIEWS (CRUD)
+        | REVIEWS
         |--------------------------------------------------------------------------
         */
         Route::get('/reviews', [ReviewController::class, 'adminIndex']);
@@ -152,7 +156,7 @@ Route::middleware(['auth:sanctum', 'admin.api'])
 
         /*
         |--------------------------------------------------------------------------
-        | BRANDS (CRUD)
+        | BRANDS
         |--------------------------------------------------------------------------
         */
         Route::get('/brands', [BrandController::class, 'adminIndex']);
@@ -162,7 +166,7 @@ Route::middleware(['auth:sanctum', 'admin.api'])
 
         /*
         |--------------------------------------------------------------------------
-        | CATEGORIES (CRUD)
+        | CATEGORIES
         |--------------------------------------------------------------------------
         */
         Route::get('/categories', [CategoryController::class, 'adminIndex']);
@@ -172,7 +176,7 @@ Route::middleware(['auth:sanctum', 'admin.api'])
 
         /*
         |--------------------------------------------------------------------------
-        | SETTINGS (CRUD)
+        | SETTINGS
         |--------------------------------------------------------------------------
         */
         Route::get('/settings', [SettingController::class, 'index']);

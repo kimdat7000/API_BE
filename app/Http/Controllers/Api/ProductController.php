@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
@@ -65,7 +66,7 @@ class ProductController extends Controller
         return response()->json($product);
     }
 
-    /* ===================== CREATE ===================== */
+    /* ===================== CREATE SINGLE ===================== */
     public function store(Request $request)
     {
         $product = Product::create([
@@ -99,6 +100,76 @@ class ProductController extends Controller
         }
 
         return response()->json($product->load(['images', 'specs']), 201);
+    }
+
+    /* ===================== CREATE BULK ===================== */
+    public function storemany(Request $request)
+    {
+        $request->validate([
+            'products' => 'required|array|min:1',
+
+            'products.*.brand_id' => 'required|exists:brands,id',
+            'products.*.category_id' => 'required|exists:categories,id',
+            'products.*.name' => 'required|string|max:255',
+            'products.*.price' => 'required|numeric',
+
+            'products.*.sale_price' => 'nullable|numeric',
+            'products.*.voltage' => 'nullable|string',
+            'products.*.capacity' => 'nullable|string',
+            'products.*.short_desc' => 'nullable|string',
+            'products.*.content' => 'nullable|string',
+            'products.*.image' => 'nullable|string',
+            'products.*.is_hot' => 'nullable|boolean',
+
+            'products.*.specs' => 'nullable|array',
+            'products.*.images' => 'nullable|array',
+        ]);
+
+        $createdProducts = [];
+
+        DB::transaction(function () use ($request, &$createdProducts) {
+            foreach ($request->products as $item) {
+
+                $product = Product::create([
+                    'brand_id' => $item['brand_id'],
+                    'category_id' => $item['category_id'],
+                    'name' => $item['name'],
+                    'slug' => Str::slug($item['name']),
+                    'voltage' => $item['voltage'] ?? null,
+                    'capacity' => $item['capacity'] ?? null,
+                    'price' => $item['price'],
+                    'sale_price' => $item['sale_price'] ?? null,
+                    'short_desc' => $item['short_desc'] ?? null,
+                    'content' => $item['content'] ?? null,
+                    'image' => $item['image'] ?? null,
+                    'is_hot' => $item['is_hot'] ?? 0,
+                    'is_active' => 1,
+                ]);
+
+                // Specs
+                if (!empty($item['specs'])) {
+                    foreach ($item['specs'] as $spec) {
+                        $product->specs()->create($spec);
+                    }
+                }
+
+                // Images
+                if (!empty($item['images'])) {
+                    foreach ($item['images'] as $img) {
+                        $product->images()->create([
+                            'image' => $img
+                        ]);
+                    }
+                }
+
+                $createdProducts[] = $product->load(['images', 'specs']);
+            }
+        });
+
+        return response()->json([
+            'message' => 'Bulk insert products success',
+            'data' => $createdProducts
+        ], 201);
     }
 
     /* ===================== UPDATE ===================== */
