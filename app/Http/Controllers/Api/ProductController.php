@@ -5,12 +5,38 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
-    /* ===================== ADMIN LIST ===================== */
+    /* =====================================================
+     | BASE64 IMAGE HANDLER
+     ===================================================== */
+    private function saveBase64Image(?string $base64, string $folder = 'products')
+    {
+        if (!$base64) return null;
+
+        if (!preg_match('/^data:image\/(\w+);base64,/', $base64, $type)) {
+            return null;
+        }
+
+        $extension = strtolower($type[1]); // png, jpg, jpeg
+        $base64 = substr($base64, strpos($base64, ',') + 1);
+        $base64 = base64_decode($base64);
+
+        $fileName = Str::random(20) . '.' . $extension;
+        $path = "$folder/$fileName";
+
+        Storage::disk('public')->put($path, $base64);
+
+        return $path;
+    }
+
+    /* =====================================================
+     | ADMIN LIST
+     ===================================================== */
     public function adminIndex(Request $request)
     {
         $query = Product::with(['brand', 'category']);
@@ -33,7 +59,9 @@ class ProductController extends Controller
         ]);
     }
 
-    /* ===================== LIST ===================== */
+    /* =====================================================
+     | LIST
+     ===================================================== */
     public function index()
     {
         return response()->json(
@@ -44,7 +72,9 @@ class ProductController extends Controller
         );
     }
 
-    /* ===================== DETAIL ===================== */
+    /* =====================================================
+     | DETAIL
+     ===================================================== */
     public function show($slug)
     {
         $product = Product::with([
@@ -63,10 +93,14 @@ class ProductController extends Controller
         return response()->json($product);
     }
 
-    /* ===================== CREATE 1 PRODUCT ===================== */
+    /* =====================================================
+     | CREATE 1 PRODUCT
+     ===================================================== */
     public function store(Request $request)
     {
         $product = DB::transaction(function () use ($request) {
+
+            $imagePath = $this->saveBase64Image($request->images);
 
             $product = Product::create([
                 'brand_id'    => $request->brand_id,
@@ -77,14 +111,16 @@ class ProductController extends Controller
                 'sale_price'  => $request->sale_price,
                 'short_desc'  => $request->short_desc,
                 'content'     => $request->content,
-                'images'      => $request->images, // FIX
+                'images'      => $imagePath,
                 'is_hot'      => $request->is_hot ?? 0,
                 'is_active'   => 1,
             ]);
 
             /* ===== SPECS ===== */
-            if (!empty($request->specs)) {
+            if (is_array($request->specs)) {
                 foreach ($request->specs as $spec) {
+                    if (!isset($spec['label'], $spec['value'])) continue;
+
                     $product->specs()->create([
                         'label' => $spec['label'],
                         'value' => $spec['value'],
@@ -93,10 +129,13 @@ class ProductController extends Controller
             }
 
             /* ===== GALLERY ===== */
-            if (!empty($request->gallery)) {
+            if (is_array($request->gallery)) {
                 foreach ($request->gallery as $img) {
+                    $path = $this->saveBase64Image($img, 'products/gallery');
+                    if (!$path) continue;
+
                     $product->gallery()->create([
-                        'images' => $img
+                        'images' => $path
                     ]);
                 }
             }
@@ -110,7 +149,9 @@ class ProductController extends Controller
         );
     }
 
-    /* ===================== CREATE MANY PRODUCTS ===================== */
+    /* =====================================================
+     | CREATE MANY PRODUCTS
+     ===================================================== */
     public function storeMany(Request $request)
     {
         $request->validate([
@@ -123,35 +164,39 @@ class ProductController extends Controller
 
             foreach ($request->products as $item) {
 
+                $imagePath = $this->saveBase64Image($item['images'] ?? null);
+
                 $product = Product::create([
                     'brand_id'    => $item['brand_id'] ?? null,
                     'category_id' => $item['category_id'],
                     'name'        => $item['name'],
                     'slug'        => Str::slug($item['name']),
-                    'price'       => $item['price'] ?? null,
+                    'price'       => $item['price'] ?? 0,
                     'sale_price'  => $item['sale_price'] ?? null,
                     'short_desc'  => $item['short_desc'] ?? null,
                     'content'     => $item['content'] ?? null,
-                    'images'      => $item['images'] ?? null, // FIX
+                    'images'      => $imagePath,
                     'is_hot'      => $item['is_hot'] ?? 0,
                     'is_active'   => 1,
                 ]);
 
-                /* ===== SPECS ===== */
-                if (!empty($item['specs'])) {
+                /* SPECS */
+                if (!empty($item['specs']) && is_array($item['specs'])) {
                     foreach ($item['specs'] as $spec) {
-                        $product->specs()->create([
-                            'label' => $spec['label'],
-                            'value' => $spec['value'],
-                        ]);
+                        if (!isset($spec['label'], $spec['value'])) continue;
+
+                        $product->specs()->create($spec);
                     }
                 }
 
-                /* ===== GALLERY ===== */
-                if (!empty($item['gallery'])) {
+                /* GALLERY */
+                if (!empty($item['gallery']) && is_array($item['gallery'])) {
                     foreach ($item['gallery'] as $img) {
+                        $path = $this->saveBase64Image($img, 'products/gallery');
+                        if (!$path) continue;
+
                         $product->gallery()->create([
-                            'images' => $img
+                            'images' => $path
                         ]);
                     }
                 }
@@ -166,10 +211,16 @@ class ProductController extends Controller
         ], 201);
     }
 
-    /* ===================== UPDATE ===================== */
+    /* =====================================================
+     | UPDATE
+     ===================================================== */
     public function update(Request $request, $id)
     {
         $product = Product::findOrFail($id);
+
+        $imagePath = $request->images
+            ? $this->saveBase64Image($request->images)
+            : $product->images;
 
         $product->update([
             'brand_id'    => $request->brand_id,
@@ -179,28 +230,29 @@ class ProductController extends Controller
             'sale_price'  => $request->sale_price,
             'short_desc'  => $request->short_desc,
             'content'     => $request->content,
-            'images'      => $request->images, // FIX
+            'images'      => $imagePath,
             'is_hot'      => $request->is_hot,
             'is_active'   => $request->is_active,
         ]);
 
-        /* ===== UPDATE SPECS ===== */
-        if ($request->specs) {
+        /* UPDATE SPECS */
+        if (is_array($request->specs)) {
             $product->specs()->delete();
             foreach ($request->specs as $spec) {
-                $product->specs()->create([
-                    'label' => $spec['label'],
-                    'value' => $spec['value'],
-                ]);
+                if (!isset($spec['label'], $spec['value'])) continue;
+                $product->specs()->create($spec);
             }
         }
 
-        /* ===== UPDATE GALLERY ===== */
-        if ($request->gallery) {
+        /* UPDATE GALLERY */
+        if (is_array($request->gallery)) {
             $product->gallery()->delete();
             foreach ($request->gallery as $img) {
+                $path = $this->saveBase64Image($img, 'products/gallery');
+                if (!$path) continue;
+
                 $product->gallery()->create([
-                    'images' => $img
+                    'images' => $path
                 ]);
             }
         }
@@ -210,7 +262,9 @@ class ProductController extends Controller
         );
     }
 
-    /* ===================== DELETE ===================== */
+    /* =====================================================
+     | DELETE
+     ===================================================== */
     public function destroy($id)
     {
         Product::findOrFail($id)->delete();
