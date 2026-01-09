@@ -133,12 +133,12 @@ class ProductController extends Controller
     public function storeMany(Request $request)
     {
         $request->validate([
-            'products' => 'required|array|min:1',
+            'products' => 'nullable|array|min:1',
 
-            'products.*.brand_id' => 'required|exists:brands,id',
+            'products.*.brand_id' => 'nullable|exists:brands,id',
             'products.*.category_id' => 'required|exists:categories,id',
             'products.*.name' => 'required|string|max:255',
-            'products.*.price' => 'required|numeric',
+            'products.*.price' => 'nullable|numeric',
 
             'products.*.sale_price' => 'nullable|numeric',
             'products.*.voltage' => 'nullable|string',
@@ -158,13 +158,13 @@ class ProductController extends Controller
             foreach ($request->products as $item) {
 
                 $product = Product::create([
-                    'brand_id' => $item['brand_id'],
+                    'brand_id' => $item['brand_id'] ?? null,
                     'category_id' => $item['category_id'],
                     'name' => $item['name'],
                     'slug' => Str::slug($item['name']),
                     'voltage' => $item['voltage'] ?? null,
                     'capacity' => $item['capacity'] ?? null,
-                    'price' => $item['price'],
+                    'price' => $item['price'] ?? null,
                     'sale_price' => $item['sale_price'] ?? null,
                     'short_desc' => $item['short_desc'] ?? null,
                     'content' => $item['content'] ?? null,
