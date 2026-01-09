@@ -107,7 +107,7 @@ class ProductController extends Controller
             'sale_price' => $request->sale_price,
             'short_desc' => $request->short_desc,
             'content' => $request->content,
-            'image' => $request->image,
+            'images' => $request->images,
             'is_hot' => $request->is_hot ?? 0,
             'is_active' => 1,
         ]);
@@ -145,7 +145,7 @@ class ProductController extends Controller
             'products.*.capacity' => 'nullable|string',
             'products.*.short_desc' => 'nullable|string',
             'products.*.content' => 'nullable|string',
-            'products.*.image' => 'nullable|string',
+            'products.*.images' => 'nullable|string',
             'products.*.is_hot' => 'nullable|boolean',
 
             'products.*.specs' => 'nullable|array',
@@ -214,7 +214,7 @@ class ProductController extends Controller
             'sale_price',
             'short_desc',
             'content',
-            'image',
+            'images',
             'is_hot',
             'is_active'
         ]));
