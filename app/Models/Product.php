@@ -21,10 +21,15 @@ class Product extends Model
         'view_count',
         'sold_count',
         'is_hot',
-        'is_active'
+        'is_active',
     ];
 
-    /* ========= RELATIONS ========= */
+    protected $casts = [
+        'is_hot'    => 'boolean',
+        'is_active' => 'boolean',
+    ];
+
+    /* ================= RELATIONS ================= */
 
     public function brand()
     {
@@ -36,7 +41,7 @@ class Product extends Model
         return $this->belongsTo(Category::class);
     }
 
-    public function images()
+    public function gallery()
     {
         return $this->hasMany(ProductImage::class);
     }
@@ -51,7 +56,8 @@ class Product extends Model
         return $this->hasMany(Review::class);
     }
 
-    /* ========= ACCESSOR ========= */
+    /* ================= ACCESSOR ================= */
+
     public function getFinalPriceAttribute()
     {
         return $this->sale_price ?? $this->price;
