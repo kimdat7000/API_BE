@@ -29,7 +29,7 @@ class ProductController extends Controller
 
         return response()->json([
             'status' => true,
-            'data' => $query->latest()->paginate(20)
+            'data'   => $query->latest()->paginate(20)
         ]);
     }
 
@@ -73,23 +73,26 @@ class ProductController extends Controller
                 'category_id' => $request->category_id,
                 'name'        => $request->name,
                 'slug'        => Str::slug($request->name),
-                'voltage'     => $request->voltage,
-                'capacity'    => $request->capacity,
                 'price'       => $request->price,
                 'sale_price'  => $request->sale_price,
                 'short_desc'  => $request->short_desc,
                 'content'     => $request->content,
-                'images'      => $request->image,
+                'images'      => $request->images, // FIX
                 'is_hot'      => $request->is_hot ?? 0,
                 'is_active'   => 1,
             ]);
 
+            /* ===== SPECS ===== */
             if (!empty($request->specs)) {
                 foreach ($request->specs as $spec) {
-                    $product->specs()->create($spec);
+                    $product->specs()->create([
+                        'label' => $spec['label'],
+                        'value' => $spec['value'],
+                    ]);
                 }
             }
 
+            /* ===== GALLERY ===== */
             if (!empty($request->gallery)) {
                 foreach ($request->gallery as $img) {
                     $product->gallery()->create([
@@ -106,7 +109,6 @@ class ProductController extends Controller
             201
         );
     }
-
 
     /* ===================== CREATE MANY PRODUCTS ===================== */
     public function storeMany(Request $request)
@@ -126,25 +128,26 @@ class ProductController extends Controller
                     'category_id' => $item['category_id'],
                     'name'        => $item['name'],
                     'slug'        => Str::slug($item['name']),
-                    'voltage'     => $item['voltage'] ?? null,
-                    'capacity'    => $item['capacity'] ?? null,
                     'price'       => $item['price'] ?? null,
                     'sale_price'  => $item['sale_price'] ?? null,
                     'short_desc'  => $item['short_desc'] ?? null,
                     'content'     => $item['content'] ?? null,
-                    'images'      => $item['image'] ?? null, // ảnh đại diện
+                    'images'      => $item['images'] ?? null, // FIX
                     'is_hot'      => $item['is_hot'] ?? 0,
                     'is_active'   => 1,
                 ]);
 
-                // Specs
+                /* ===== SPECS ===== */
                 if (!empty($item['specs'])) {
                     foreach ($item['specs'] as $spec) {
-                        $product->specs()->create($spec);
+                        $product->specs()->create([
+                            'label' => $spec['label'],
+                            'value' => $spec['value'],
+                        ]);
                     }
                 }
 
-                // Gallery
+                /* ===== GALLERY ===== */
                 if (!empty($item['gallery'])) {
                     foreach ($item['gallery'] as $img) {
                         $product->gallery()->create([
@@ -159,7 +162,7 @@ class ProductController extends Controller
 
         return response()->json([
             'message' => 'Create products success',
-            'data' => $created
+            'data'    => $created
         ], 201);
     }
 
@@ -172,26 +175,27 @@ class ProductController extends Controller
             'brand_id'    => $request->brand_id,
             'category_id' => $request->category_id,
             'name'        => $request->name,
-            'voltage'     => $request->voltage,
-            'capacity'    => $request->capacity,
             'price'       => $request->price,
             'sale_price'  => $request->sale_price,
             'short_desc'  => $request->short_desc,
             'content'     => $request->content,
-            'images'      => $request->image,
+            'images'      => $request->images, // FIX
             'is_hot'      => $request->is_hot,
             'is_active'   => $request->is_active,
         ]);
 
-        // Specs
+        /* ===== UPDATE SPECS ===== */
         if ($request->specs) {
             $product->specs()->delete();
             foreach ($request->specs as $spec) {
-                $product->specs()->create($spec);
+                $product->specs()->create([
+                    'label' => $spec['label'],
+                    'value' => $spec['value'],
+                ]);
             }
         }
 
-        // Gallery
+        /* ===== UPDATE GALLERY ===== */
         if ($request->gallery) {
             $product->gallery()->delete();
             foreach ($request->gallery as $img) {

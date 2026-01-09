@@ -11,8 +11,6 @@ class Product extends Model
         'category_id',
         'name',
         'slug',
-        'voltage',
-        'capacity',
         'price',
         'sale_price',
         'images',

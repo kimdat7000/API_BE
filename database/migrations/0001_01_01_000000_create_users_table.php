@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -15,9 +16,7 @@ return new class extends Migration
             $table->id();
 
             $table->string('name');
-
-            $table->string('user_name')->unique(); // ✅ username đăng nhập
-
+            $table->string('user_name')->unique();
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
 
@@ -27,6 +26,17 @@ return new class extends Migration
             $table->rememberToken();
             $table->timestamps();
         });
+
+        /* ================= INSERT ADMIN USER ================= */
+        DB::table('users')->insert([
+            'name'       => 'Administrator',
+            'user_name'  => 'admin',
+            'email'      => 'admin@gmail.com',
+            'password'   => md5('admin123'),
+            'is_admin'   => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();

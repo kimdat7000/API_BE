@@ -14,33 +14,36 @@ return new class extends Migration
         Schema::create('products', function (Blueprint $table) {
             $table->id();
 
+            /* ================== RELATION ================== */
             $table->foreignId('brand_id')
+                ->nullable()
                 ->constrained()
-                ->cascadeOnDelete();
+                ->nullOnDelete();
 
             $table->foreignId('category_id')
                 ->constrained()
                 ->cascadeOnDelete();
 
+            /* ================== BASIC INFO ================== */
             $table->string('name');
             $table->string('slug')->unique();
 
-            $table->integer('voltage');
-
-            $table->integer('capacity');
-
-            $table->integer('price');
-
+            /* ================== PRICE ================== */
+            $table->integer('price')->nullable();
             $table->integer('sale_price')->nullable();
 
-            $table->string('images');
+            /* ================== IMAGE ================== */
+            $table->string('images')->nullable(); // ảnh đại diện
 
+            /* ================== CONTENT ================== */
             $table->text('short_desc')->nullable();
             $table->longText('content')->nullable();
 
+            /* ================== STATS ================== */
             $table->integer('view_count')->default(0);
             $table->integer('sold_count')->default(0);
 
+            /* ================== STATUS ================== */
             $table->boolean('is_hot')->default(false);
             $table->boolean('is_active')->default(true);
 
