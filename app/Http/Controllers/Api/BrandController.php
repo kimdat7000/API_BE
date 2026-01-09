@@ -11,6 +11,20 @@ use Illuminate\Support\Facades\Storage;
 class BrandController extends Controller
 {
     /**
+     * GET /api/admin/brands
+     * Danh sách thương hiệu (ADMIN)
+     */
+    public function adminIndex()
+    {
+        $brands = Brand::orderBy('id', 'desc')->get();
+
+        return response()->json([
+            'status' => true,
+            'data' => $brands
+        ]);
+    }
+
+    /**
      * GET /api/brands
      * Danh sách thương hiệu
      */

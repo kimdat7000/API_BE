@@ -11,7 +11,11 @@ class AdminApiMiddleware
     {
         $user = $request->user();
 
-        if (!$user || !$user->is_admin) {
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        if ((int)$user->is_admin !== 1) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 

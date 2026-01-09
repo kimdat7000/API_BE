@@ -10,6 +10,33 @@ use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
+
+    /**
+     * GET /api/admin/products
+     * Danh sách sản phẩm (ADMIN)
+     */
+    public function adminIndex(Request $request)
+    {
+        $query = Product::with(['brand', 'category']);
+
+        if ($request->brand_id) {
+            $query->where('brand_id', $request->brand_id);
+        }
+
+        if ($request->category_id) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        if ($request->is_active !== null) {
+            $query->where('is_active', $request->is_active);
+        }
+
+        return response()->json([
+            'status' => true,
+            'data' => $query->latest()->paginate(20)
+        ]);
+    }
+
     /* ===================== LIST ===================== */
     public function index(Request $request)
     {

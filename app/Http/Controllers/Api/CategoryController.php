@@ -14,7 +14,18 @@ class CategoryController extends Controller
     | FRONTEND API
     |--------------------------------------------------------------------------
     */
+    /**
+     * GET /api/admin/categories
+     */
+    public function adminIndex()
+    {
+        $categories = Category::orderBy('id', 'desc')->get();
 
+        return response()->json([
+            'status' => true,
+            'data' => $categories
+        ]);
+    }
     /**
      * GET /api/categories
      */

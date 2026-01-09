@@ -6,6 +6,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\HandleCors;
 use Illuminate\Auth\AuthenticationException;
 use Symfony\Component\HttpFoundation\Response;
+use App\Http\Middleware\AdminApiMiddleware; // 👈 THÊM
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -17,6 +18,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(HandleCors::class);
+
+        // ✅ ĐĂNG KÝ ALIAS MIDDLEWARE (LARAVEL 11/12)
+        $middleware->alias([
+            'admin.api' => AdminApiMiddleware::class,
+        ]);
     })
 
     ->withExceptions(function (Exceptions $exceptions): void {
