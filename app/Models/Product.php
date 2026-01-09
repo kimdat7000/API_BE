@@ -15,7 +15,7 @@ class Product extends Model
         'capacity',
         'price',
         'sale_price',
-        'image',
+        'images',
         'short_desc',
         'content',
         'view_count',
