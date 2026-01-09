@@ -12,26 +12,14 @@ use Illuminate\Support\Str;
 class ProductController extends Controller
 {
     /* =====================================================
-     | BASE64 IMAGE HANDLER
+     | FILE UPLOAD HELPER
      ===================================================== */
-    private function saveBase64Image(?string $base64, string $folder = 'products')
+    private function saveUploadedFile($file, $folder = 'products')
     {
-        if (!$base64) return null;
+        if (!$file) return null;
 
-        if (!preg_match('/^data:image\/(\w+);base64,/', $base64, $type)) {
-            return null;
-        }
-
-        $extension = strtolower($type[1]); // png, jpg, jpeg
-        $base64 = substr($base64, strpos($base64, ',') + 1);
-        $base64 = base64_decode($base64);
-
-        $fileName = Str::random(20) . '.' . $extension;
-        $path = "$folder/$fileName";
-
-        Storage::disk('public')->put($path, $base64);
-
-        return $path;
+        $fileName = Str::uuid() . '.' . $file->getClientOriginalExtension();
+        return $file->storeAs($folder, $fileName, 'public');
     }
 
     /* =====================================================
@@ -94,13 +82,25 @@ class ProductController extends Controller
     }
 
     /* =====================================================
-     | CREATE 1 PRODUCT
+     | CREATE PRODUCT
      ===================================================== */
     public function store(Request $request)
     {
+        $request->validate([
+            'name'        => 'required|string|max:255',
+            'category_id' => 'required|integer',
+            'price'       => 'required|numeric',
+            'images'      => 'required|image|max:2048',
+            'gallery.*'   => 'image|max:2048'
+        ]);
+
         $product = DB::transaction(function () use ($request) {
 
-            $imagePath = $this->saveBase64Image($request->images);
+            /* MAIN IMAGE */
+            $imagePath = $this->saveUploadedFile(
+                $request->file('images'),
+                'products'
+            );
 
             $product = Product::create([
                 'brand_id'    => $request->brand_id,
@@ -116,23 +116,19 @@ class ProductController extends Controller
                 'is_active'   => 1,
             ]);
 
-            /* ===== SPECS ===== */
+            /* SPECS */
             if (is_array($request->specs)) {
                 foreach ($request->specs as $spec) {
                     if (!isset($spec['label'], $spec['value'])) continue;
 
-                    $product->specs()->create([
-                        'label' => $spec['label'],
-                        'value' => $spec['value'],
-                    ]);
+                    $product->specs()->create($spec);
                 }
             }
 
-            /* ===== GALLERY ===== */
-            if (is_array($request->gallery)) {
-                foreach ($request->gallery as $img) {
-                    $path = $this->saveBase64Image($img, 'products/gallery');
-                    if (!$path) continue;
+            /* GALLERY (OPTIONAL) */
+            if ($request->hasFile('gallery')) {
+                foreach ($request->file('gallery') as $file) {
+                    $path = $this->saveUploadedFile($file, 'products/gallery');
 
                     $product->gallery()->create([
                         'images' => $path
@@ -150,90 +146,37 @@ class ProductController extends Controller
     }
 
     /* =====================================================
-     | CREATE MANY PRODUCTS
-     ===================================================== */
-    public function storeMany(Request $request)
-    {
-        $request->validate([
-            'products' => 'required|array|min:1',
-        ]);
-
-        $created = [];
-
-        DB::transaction(function () use ($request, &$created) {
-
-            foreach ($request->products as $item) {
-
-                $imagePath = $this->saveBase64Image($item['images'] ?? null);
-
-                $product = Product::create([
-                    'brand_id'    => $item['brand_id'] ?? null,
-                    'category_id' => $item['category_id'],
-                    'name'        => $item['name'],
-                    'slug'        => Str::slug($item['name']),
-                    'price'       => $item['price'] ?? 0,
-                    'sale_price'  => $item['sale_price'] ?? null,
-                    'short_desc'  => $item['short_desc'] ?? null,
-                    'content'     => $item['content'] ?? null,
-                    'images'      => $imagePath,
-                    'is_hot'      => $item['is_hot'] ?? 0,
-                    'is_active'   => 1,
-                ]);
-
-                /* SPECS */
-                if (!empty($item['specs']) && is_array($item['specs'])) {
-                    foreach ($item['specs'] as $spec) {
-                        if (!isset($spec['label'], $spec['value'])) continue;
-
-                        $product->specs()->create($spec);
-                    }
-                }
-
-                /* GALLERY */
-                if (!empty($item['gallery']) && is_array($item['gallery'])) {
-                    foreach ($item['gallery'] as $img) {
-                        $path = $this->saveBase64Image($img, 'products/gallery');
-                        if (!$path) continue;
-
-                        $product->gallery()->create([
-                            'images' => $path
-                        ]);
-                    }
-                }
-
-                $created[] = $product->load(['gallery', 'specs']);
-            }
-        });
-
-        return response()->json([
-            'message' => 'Create products success',
-            'data'    => $created
-        ], 201);
-    }
-
-    /* =====================================================
-     | UPDATE
+     | UPDATE PRODUCT
      ===================================================== */
     public function update(Request $request, $id)
     {
         $product = Product::findOrFail($id);
 
-        $imagePath = $request->images
-            ? $this->saveBase64Image($request->images)
-            : $product->images;
-
-        $product->update([
-            'brand_id'    => $request->brand_id,
-            'category_id' => $request->category_id,
-            'name'        => $request->name,
-            'price'       => $request->price,
-            'sale_price'  => $request->sale_price,
-            'short_desc'  => $request->short_desc,
-            'content'     => $request->content,
-            'images'      => $imagePath,
-            'is_hot'      => $request->is_hot,
-            'is_active'   => $request->is_active,
+        $data = $request->only([
+            'brand_id',
+            'category_id',
+            'name',
+            'price',
+            'sale_price',
+            'short_desc',
+            'content',
+            'is_hot',
+            'is_active'
         ]);
+
+        /* UPDATE MAIN IMAGE */
+        if ($request->hasFile('images')) {
+            if ($product->images) {
+                Storage::disk('public')->delete($product->images);
+            }
+
+            $data['images'] = $this->saveUploadedFile(
+                $request->file('images'),
+                'products'
+            );
+        }
+
+        $product->update($data);
 
         /* UPDATE SPECS */
         if (is_array($request->specs)) {
@@ -245,11 +188,11 @@ class ProductController extends Controller
         }
 
         /* UPDATE GALLERY */
-        if (is_array($request->gallery)) {
+        if ($request->hasFile('gallery')) {
             $product->gallery()->delete();
-            foreach ($request->gallery as $img) {
-                $path = $this->saveBase64Image($img, 'products/gallery');
-                if (!$path) continue;
+
+            foreach ($request->file('gallery') as $file) {
+                $path = $this->saveUploadedFile($file, 'products/gallery');
 
                 $product->gallery()->create([
                     'images' => $path
@@ -267,7 +210,17 @@ class ProductController extends Controller
      ===================================================== */
     public function destroy($id)
     {
-        Product::findOrFail($id)->delete();
+        $product = Product::findOrFail($id);
+
+        if ($product->images) {
+            Storage::disk('public')->delete($product->images);
+        }
+
+        foreach ($product->gallery as $img) {
+            Storage::disk('public')->delete($img->images);
+        }
+
+        $product->delete();
 
         return response()->json([
             'message' => 'Product deleted'
