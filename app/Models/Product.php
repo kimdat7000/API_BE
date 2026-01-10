@@ -14,6 +14,10 @@ class Product extends Model
         'price',
         'sale_price',
         'images',
+        'type',
+        'voltage',
+        'capacity',
+        'size',
         'short_desc',
         'content',
         'view_count',
@@ -42,11 +46,6 @@ class Product extends Model
     public function gallery()
     {
         return $this->hasMany(ProductImage::class);
-    }
-
-    public function specs()
-    {
-        return $this->hasMany(ProductSpec::class);
     }
 
     public function reviews()

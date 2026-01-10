@@ -11,9 +11,6 @@ use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
-    /* =====================================================
-     | FILE UPLOAD HELPER
-     ===================================================== */
     private function saveUploadedFile($file, $folder = 'products')
     {
         if (!$file) return null;
@@ -22,9 +19,6 @@ class ProductController extends Controller
         return $file->storeAs($folder, $fileName, 'public');
     }
 
-    /* =====================================================
-     | ADMIN LIST
-     ===================================================== */
     public function adminIndex(Request $request)
     {
         $query = Product::with(['brand', 'category']);
@@ -47,9 +41,6 @@ class ProductController extends Controller
         ]);
     }
 
-    /* =====================================================
-     | LIST
-     ===================================================== */
     public function index()
     {
         return response()->json(
@@ -60,16 +51,12 @@ class ProductController extends Controller
         );
     }
 
-    /* =====================================================
-     | DETAIL
-     ===================================================== */
     public function show($slug)
     {
         $product = Product::with([
             'brand',
             'category',
             'gallery',
-            'specs',
             'reviews' => fn($q) => $q->where('is_approved', 1),
         ])
             ->where('slug', $slug)
@@ -81,9 +68,6 @@ class ProductController extends Controller
         return response()->json($product);
     }
 
-    /* =====================================================
-     | CREATE PRODUCT
-     ===================================================== */
     public function store(Request $request)
     {
         $request->validate([
@@ -95,12 +79,7 @@ class ProductController extends Controller
         ]);
 
         $product = DB::transaction(function () use ($request) {
-
-            /* MAIN IMAGE */
-            $imagePath = $this->saveUploadedFile(
-                $request->file('images'),
-                'products'
-            );
+            $imagePath = $this->saveUploadedFile($request->file('images'), 'products');
 
             $product = Product::create([
                 'brand_id'    => $request->brand_id,
@@ -109,6 +88,10 @@ class ProductController extends Controller
                 'slug'        => Str::slug($request->name),
                 'price'       => $request->price,
                 'sale_price'  => $request->sale_price,
+                'type'        => $request->type,
+                'voltage'     => $request->voltage,
+                'capacity'    => $request->capacity,
+                'size'        => $request->size,
                 'short_desc'  => $request->short_desc,
                 'content'     => $request->content,
                 'images'      => $imagePath,
@@ -116,38 +99,73 @@ class ProductController extends Controller
                 'is_active'   => 1,
             ]);
 
-            /* SPECS */
-            if (is_array($request->specs)) {
-                foreach ($request->specs as $spec) {
-                    if (!isset($spec['label'], $spec['value'])) continue;
-
-                    $product->specs()->create($spec);
-                }
-            }
-
-            /* GALLERY (OPTIONAL) */
             if ($request->hasFile('gallery')) {
                 foreach ($request->file('gallery') as $file) {
                     $path = $this->saveUploadedFile($file, 'products/gallery');
-
-                    $product->gallery()->create([
-                        'images' => $path
-                    ]);
+                    $product->gallery()->create(['images' => $path]);
                 }
             }
 
             return $product;
         });
 
-        return response()->json(
-            $product->load(['gallery', 'specs']),
-            201
-        );
+        return response()->json($product->load(['gallery']), 201);
     }
 
-    /* =====================================================
-     | UPDATE PRODUCT
-     ===================================================== */
+    public function storeMany(Request $request)
+    {
+        $request->validate([
+            'products'           => 'required|array',
+            'products.*.name'    => 'required|string|max:255',
+            'products.*.category_id' => 'required|integer',
+            'products.*.price'   => 'required|numeric',
+            'products.*.images'  => 'required|image|max:2048',
+            'products.*.gallery.*' => 'image|max:2048'
+        ]);
+
+        $createdProducts = DB::transaction(function () use ($request) {
+            $productsData = [];
+
+            foreach ($request->products as $item) {
+                $imagePath = $this->saveUploadedFile($item['images'], 'products');
+
+                $product = Product::create([
+                    'brand_id'    => $item['brand_id'] ?? null,
+                    'category_id' => $item['category_id'],
+                    'name'        => $item['name'],
+                    'slug'        => Str::slug($item['name'] . '-' . Str::uuid()),
+                    'price'       => $item['price'],
+                    'sale_price'  => $item['sale_price'] ?? null,
+                    'type'        => $item['type'] ?? null,
+                    'voltage'     => $item['voltage'] ?? null,
+                    'capacity'    => $item['capacity'] ?? null,
+                    'size'        => $item['size'] ?? null,
+                    'short_desc'  => $item['short_desc'] ?? null,
+                    'content'     => $item['content'] ?? null,
+                    'images'      => $imagePath,
+                    'is_hot'      => $item['is_hot'] ?? 0,
+                    'is_active'   => 1,
+                ]);
+
+                if (!empty($item['gallery'])) {
+                    foreach ($item['gallery'] as $file) {
+                        $path = $this->saveUploadedFile($file, 'products/gallery');
+                        $product->gallery()->create(['images' => $path]);
+                    }
+                }
+
+                $productsData[] = $product->load(['gallery']);
+            }
+
+            return $productsData;
+        });
+
+        return response()->json([
+            'status' => true,
+            'data'   => $createdProducts
+        ], 201);
+    }
+
     public function update(Request $request, $id)
     {
         $product = Product::findOrFail($id);
@@ -158,56 +176,42 @@ class ProductController extends Controller
             'name',
             'price',
             'sale_price',
+            'type',
+            'voltage',
+            'capacity',
+            'size',
             'short_desc',
             'content',
             'is_hot',
             'is_active'
         ]);
 
-        /* UPDATE MAIN IMAGE */
         if ($request->hasFile('images')) {
             if ($product->images) {
                 Storage::disk('public')->delete($product->images);
             }
 
-            $data['images'] = $this->saveUploadedFile(
-                $request->file('images'),
-                'products'
-            );
+            $data['images'] = $this->saveUploadedFile($request->file('images'), 'products');
         }
 
         $product->update($data);
 
-        /* UPDATE SPECS */
-        if (is_array($request->specs)) {
-            $product->specs()->delete();
-            foreach ($request->specs as $spec) {
-                if (!isset($spec['label'], $spec['value'])) continue;
-                $product->specs()->create($spec);
-            }
-        }
-
-        /* UPDATE GALLERY */
         if ($request->hasFile('gallery')) {
+            foreach ($product->gallery as $img) {
+                Storage::disk('public')->delete($img->images);
+            }
+
             $product->gallery()->delete();
 
             foreach ($request->file('gallery') as $file) {
                 $path = $this->saveUploadedFile($file, 'products/gallery');
-
-                $product->gallery()->create([
-                    'images' => $path
-                ]);
+                $product->gallery()->create(['images' => $path]);
             }
         }
 
-        return response()->json(
-            $product->load(['gallery', 'specs'])
-        );
+        return response()->json($product->load(['gallery']));
     }
 
-    /* =====================================================
-     | DELETE
-     ===================================================== */
     public function destroy($id)
     {
         $product = Product::findOrFail($id);
@@ -222,8 +226,6 @@ class ProductController extends Controller
 
         $product->delete();
 
-        return response()->json([
-            'message' => 'Product deleted'
-        ]);
+        return response()->json(['message' => 'Product deleted']);
     }
 }
