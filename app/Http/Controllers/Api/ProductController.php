@@ -70,10 +70,11 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
+        // BỎ REQUIRED CHO PRICE
         $request->validate([
             'name'        => 'required|string|max:255',
             'category_id' => 'required|integer',
-            'price'       => 'required|numeric',
+            'price'       => 'nullable|numeric',  // ← ĐỔI THÀNH nullable
             'images'      => 'required|image|max:2048',
             'gallery.*'   => 'image|max:2048'
         ]);
@@ -114,11 +115,12 @@ class ProductController extends Controller
 
     public function storeMany(Request $request)
     {
+        // BỎ REQUIRED CHO PRICE
         $request->validate([
             'products'           => 'required|array',
             'products.*.name'    => 'required|string|max:255',
             'products.*.category_id' => 'required|integer',
-            'products.*.price'   => 'required|numeric',
+            'products.*.price'   => 'nullable|numeric',  // ← ĐỔI THÀNH nullable
             'products.*.images'  => 'required|image|max:2048',
             'products.*.gallery.*' => 'image|max:2048'
         ]);
@@ -134,7 +136,7 @@ class ProductController extends Controller
                     'category_id' => $item['category_id'],
                     'name'        => $item['name'],
                     'slug'        => Str::slug($item['name'] . '-' . Str::uuid()),
-                    'price'       => $item['price'],
+                    'price'       => $item['price'] ?? null,  // ← CHO PHÉP NULL
                     'sale_price'  => $item['sale_price'] ?? null,
                     'type'        => $item['type'] ?? null,
                     'voltage'     => $item['voltage'] ?? null,
