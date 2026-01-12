@@ -112,6 +112,7 @@ Route::middleware(['auth:sanctum', 'admin.api'])
         Route::get('/products', [ProductController::class, 'adminIndex']);
         Route::post('/products', [ProductController::class, 'store']);
         Route::post('/products/many', [ProductController::class, 'storeMany']);
+        Route::post('products/import-bulk', [ProductController::class, 'importBulk']);
         Route::put('/products/{id}', [ProductController::class, 'update']);
         Route::delete('/products/{id}', [ProductController::class, 'destroy']);
 
