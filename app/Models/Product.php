@@ -31,6 +31,9 @@ class Product extends Model
         'is_active' => 'boolean',
     ];
 
+    // ✅ THÊM DÒNG NÀY - Tự động thêm image_url vào JSON response
+    protected $appends = ['image_url', 'final_price'];
+
     /* ================= RELATIONS ================= */
 
     public function brand()
@@ -58,5 +61,14 @@ class Product extends Model
     public function getFinalPriceAttribute()
     {
         return $this->sale_price ?? $this->price;
+    }
+
+    // ✅ THÊM ACCESSOR NÀY - Tự động tạo full URL cho ảnh
+    public function getImageUrlAttribute()
+    {
+        if ($this->images) {
+            return asset('storage/' . $this->images);
+        }
+        return null;
     }
 }
