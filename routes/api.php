@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\NewsController;
 
 use App\Http\Controllers\Api\Admin\AuthController;
 use App\Http\Controllers\Api\Admin\UserController;
@@ -19,55 +20,63 @@ use App\Http\Controllers\Api\Admin\UserController;
 */
 
 /*
-    |--------------------------------------------------------------------------
-    | PRODUCTS
-    |--------------------------------------------------------------------------
+|--------------------------------------------------------------------------
+| PRODUCTS
+|--------------------------------------------------------------------------
 */
 
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{slug}', [ProductController::class, 'show']);
 
 /*
-    |--------------------------------------------------------------------------
-    | PRODUCT IMAGES
-    |--------------------------------------------------------------------------
+|--------------------------------------------------------------------------
+| PRODUCT IMAGES
+|--------------------------------------------------------------------------
 */
 Route::get('/products/{productId}/images', [ProductImageController::class, 'index']);
 
 /*
-    |--------------------------------------------------------------------------
-    | PRODUCT REVIEWS
-    |--------------------------------------------------------------------------
+|--------------------------------------------------------------------------
+| PRODUCT REVIEWS
+|--------------------------------------------------------------------------
 */
 Route::get('/products/{productId}/reviews', [ReviewController::class, 'index']);
 
 /*
-    |--------------------------------------------------------------------------
-    | SEND REVIEW
-    |--------------------------------------------------------------------------
+|--------------------------------------------------------------------------
+| SEND REVIEW
+|--------------------------------------------------------------------------
 */
 Route::post('/reviews', [ReviewController::class, 'store']);
 
 /*
-    |--------------------------------------------------------------------------
-    | BRANDS
-    |--------------------------------------------------------------------------
+|--------------------------------------------------------------------------
+| BRANDS
+|--------------------------------------------------------------------------
 */
 Route::get('/brands', [BrandController::class, 'index']);
 Route::get('/brands/{id}', [BrandController::class, 'show']);
 
 /*
-    |--------------------------------------------------------------------------
-    | CATEGORIES
-    |--------------------------------------------------------------------------
+|--------------------------------------------------------------------------
+| CATEGORIES
+|--------------------------------------------------------------------------
 */
 Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/categories/{id}', [CategoryController::class, 'show']);
 
 /*
-    |--------------------------------------------------------------------------
-    | SETTINGS (READ ONLY)
-    |--------------------------------------------------------------------------
+|--------------------------------------------------------------------------
+| NEWS (PUBLIC)
+|--------------------------------------------------------------------------
+*/
+Route::get('/news', [NewsController::class, 'index']);
+Route::get('/news/{slug}', [NewsController::class, 'show']);
+
+/*
+|--------------------------------------------------------------------------
+| SETTINGS (READ ONLY)
+|--------------------------------------------------------------------------
 */
 Route::get('/settings', [SettingController::class, 'index']);
 
@@ -88,16 +97,16 @@ Route::middleware(['auth:sanctum', 'admin.api'])
     ->group(function () {
 
         /*
-            |--------------------------------------------------------------------------
-            | AUTH
-            |--------------------------------------------------------------------------
+        |--------------------------------------------------------------------------
+        | AUTH
+        |--------------------------------------------------------------------------
         */
         Route::post('/logout', [AuthController::class, 'logout']);
 
         /*
-            |--------------------------------------------------------------------------
-            | USERS
-            |--------------------------------------------------------------------------
+        |--------------------------------------------------------------------------
+        | USERS
+        |--------------------------------------------------------------------------
         */
         Route::get('/users', [UserController::class, 'index']);
         Route::post('/users', [UserController::class, 'store']);
@@ -105,38 +114,38 @@ Route::middleware(['auth:sanctum', 'admin.api'])
         Route::delete('/users/{id}', [UserController::class, 'destroy']);
 
         /*
-            |--------------------------------------------------------------------------
-            | PRODUCTS
-            |--------------------------------------------------------------------------
+        |--------------------------------------------------------------------------
+        | PRODUCTS
+        |--------------------------------------------------------------------------
         */
         Route::get('/products', [ProductController::class, 'adminIndex']);
         Route::post('/products', [ProductController::class, 'store']);
         Route::post('/products/many', [ProductController::class, 'storeMany']);
-        Route::post('products/import-bulk', [ProductController::class, 'importBulk']);
+        Route::post('/products/import-bulk', [ProductController::class, 'importBulk']);
         Route::put('/products/{id}', [ProductController::class, 'update']);
         Route::delete('/products/{id}', [ProductController::class, 'destroy']);
 
         /*
-            |--------------------------------------------------------------------------
-            | PRODUCT IMAGES
-            |--------------------------------------------------------------------------
+        |--------------------------------------------------------------------------
+        | PRODUCT IMAGES
+        |--------------------------------------------------------------------------
         */
         Route::post('/products/{productId}/images', [ProductImageController::class, 'store']);
         Route::delete('/product-images/{id}', [ProductImageController::class, 'destroy']);
 
         /*
-            |--------------------------------------------------------------------------
-            | REVIEWS
-            |--------------------------------------------------------------------------
+        |--------------------------------------------------------------------------
+        | REVIEWS
+        |--------------------------------------------------------------------------
         */
         Route::get('/reviews', [ReviewController::class, 'adminIndex']);
         Route::put('/reviews/{id}/approve', [ReviewController::class, 'approve']);
         Route::delete('/reviews/{id}', [ReviewController::class, 'destroy']);
 
         /*
-            |--------------------------------------------------------------------------
-            | BRANDS
-            |--------------------------------------------------------------------------
+        |--------------------------------------------------------------------------
+        | BRANDS
+        |--------------------------------------------------------------------------
         */
         Route::get('/brands', [BrandController::class, 'adminIndex']);
         Route::post('/brands', [BrandController::class, 'store']);
@@ -144,9 +153,9 @@ Route::middleware(['auth:sanctum', 'admin.api'])
         Route::delete('/brands/{id}', [BrandController::class, 'destroy']);
 
         /*
-            |--------------------------------------------------------------------------
-            | CATEGORIES
-            |--------------------------------------------------------------------------
+        |--------------------------------------------------------------------------
+        | CATEGORIES
+        |--------------------------------------------------------------------------
         */
         Route::get('/categories', [CategoryController::class, 'adminIndex']);
         Route::post('/categories', [CategoryController::class, 'store']);
@@ -154,9 +163,19 @@ Route::middleware(['auth:sanctum', 'admin.api'])
         Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
 
         /*
-            |--------------------------------------------------------------------------
-            | SETTINGS
-            |--------------------------------------------------------------------------
+        |--------------------------------------------------------------------------
+        | NEWS (ADMIN)
+        |--------------------------------------------------------------------------
+        */
+        Route::get('/news', [NewsController::class, 'adminIndex']);
+        Route::post('/news', [NewsController::class, 'store']);
+        Route::post('/news/{id}', [NewsController::class, 'update']); // form-data
+        Route::delete('/news/{id}', [NewsController::class, 'destroy']);
+
+        /*
+        |--------------------------------------------------------------------------
+        | SETTINGS
+        |--------------------------------------------------------------------------
         */
         Route::get('/settings', [SettingController::class, 'index']);
         Route::post('/settings', [SettingController::class, 'store']);
